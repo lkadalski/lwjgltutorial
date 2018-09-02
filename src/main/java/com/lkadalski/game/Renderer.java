@@ -1,9 +1,12 @@
 package com.lkadalski.game;
 
+import com.lkadalski.engine.GameItem;
 import com.lkadalski.engine.Utils;
 import com.lkadalski.engine.Window;
 import com.lkadalski.engine.graph.Mesh;
 import com.lkadalski.engine.graph.ShaderProgram;
+import com.lkadalski.engine.graph.Transformation;
+import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
@@ -19,55 +22,39 @@ import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 public class Renderer {
     private ShaderProgram shaderProgram;
 
-    private int vboId;
+    private static final float FOV = (float) Math.toRadians(60.0f);
 
-    private int vaoId;
+    private static final float Z_NEAR = 0.01f;
 
-    public void init() throws Exception {
+    private static final float Z_FAR = 1000.f;
+    private Transformation transformation;
+    private Matrix4f projectionMatrix;
+
+    public Renderer() {
+        this.transformation = new Transformation();
+    }
+
+    public void init(Window window) throws Exception {
         shaderProgram = new ShaderProgram();
         shaderProgram.createVertexShader(Utils.loadResource("/vertex.vs"));
         shaderProgram.createFragmentShader(Utils.loadResource("/fragment.fs"));
         shaderProgram.link();
 
-        float[] vertices = new float[]{
-                0.0f, 0.5f, 0.0f,
-                -0.5f, -0.5f, 0.0f,
-                0.5f, -0.5f, 0.0f
-        };
+        float asceptRatio = (float) window.getWidth() / window.getHeight();
+        projectionMatrix = new Matrix4f().perspective(FOV, asceptRatio, Z_NEAR, Z_FAR);
+        shaderProgram.createUniform("projectionMatrix");
+        shaderProgram.createUniform("worldMatrix");
 
-        FloatBuffer verticesBuffer = null;
-        try {
-            verticesBuffer = MemoryUtil.memAllocFloat(vertices.length);
-            verticesBuffer.put(vertices).flip();
+        window.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-            // Create the VAO and bind to it
-            vaoId = glGenVertexArrays();
-            glBindVertexArray(vaoId);
 
-            // Create the VBO and bint to it
-            vboId = glGenBuffers();
-            glBindBuffer(GL_ARRAY_BUFFER, vboId);
-            glBufferData(GL_ARRAY_BUFFER, verticesBuffer, GL_STATIC_DRAW);
-            // Define structure of the data
-            glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-
-            // Unbind the VBO
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-            // Unbind the VAO
-            glBindVertexArray(0);
-        } finally {
-            if (verticesBuffer != null) {
-                MemoryUtil.memFree(verticesBuffer);
-            }
-        }
     }
 
     public void clear() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    public void render(Window window, Mesh mesh) {
+    public void render(Window window, GameItem[] gameItems) {
         clear();
 
         if (window.isResized()) {
@@ -75,17 +62,24 @@ public class Renderer {
             window.setResized(false);
         }
         shaderProgram.bind();
-        // Draw the mesh
-        glBindVertexArray(mesh.getVaoId());
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glDrawElements(GL_TRIANGLES, mesh.getVertexCount(),GL_UNSIGNED_INT,0);
 
-        // Restore state
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-        glBindVertexArray(0);
+        //Update projection Matrix
+        Matrix4f projectionMatrix = transformation.getProjectionMatrix(FOV, window.getWidth(), window.getHeight(), Z_NEAR, Z_FAR);
+        shaderProgram.setUniform("projectionMatrix", projectionMatrix);
 
+        // render each gameItem
+        for (GameItem gameItem : gameItems) {
+            //set world matrix for this item
+            Matrix4f worldMatrix =
+                    transformation.getWorldMatrix(
+                            gameItem.getPosition(),
+                            gameItem.getRotation(),
+                            gameItem.getScale());
+            shaderProgram.setUniform("worldMatrix", worldMatrix);
+
+            //render the mesh
+            gameItem.getMesh().render();
+        }
         shaderProgram.unbind();
     }
 

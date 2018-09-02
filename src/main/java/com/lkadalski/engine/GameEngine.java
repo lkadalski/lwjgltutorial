@@ -6,7 +6,7 @@ public class GameEngine implements Runnable {
     private Window window;
     private IGameLogic gameLogic;
     private final Timer timer;
-    private static final int TARGET_UPS= 30;
+    private static final int TARGET_UPS = 30;
     public static final int TARGET_FPS = 75;
 
     public GameEngine(String windowTitle, int width, int height, boolean vsSync, IGameLogic gameLogic) throws Exception {
@@ -40,54 +40,58 @@ public class GameEngine implements Runnable {
     protected void init() throws Exception {
         window.init();
         timer.init();
-        gameLogic.init();
+        gameLogic.init(window);
     }
+
     protected void gameLoop() {
         float elapsedTime;
         float accumulator = 0f;
-        float interval = 1f/TARGET_UPS;
+        float interval = 1f / TARGET_UPS;
 
         boolean running = true;
-        while(running && !window.windowShouldClose()){
+        while (running && !window.windowShouldClose()) {
             elapsedTime = timer.getElapsedTime();
             accumulator += elapsedTime;
 
             input();
 
-            while (accumulator>= interval){
+            while (accumulator >= interval) {
                 update(interval);
-                accumulator -=interval;
+                accumulator -= interval;
             }
             render();
-            if (!window.isvSync()){
+            if (!window.isvSync()) {
                 sync();
             }
         }
     }
 
-    private void sync(){
-        float loopSlot = 1f/TARGET_FPS;
+    private void sync() {
+        float loopSlot = 1f / TARGET_FPS;
         double endTime = timer.getLastLoopTime() + loopSlot;
-        while (timer.getTime() < endTime){
+        while (timer.getTime() < endTime) {
             try {
                 Thread.sleep(1);
-            } catch (InterruptedException e){
+            } catch (InterruptedException e) {
 
             }
         }
     }
-    protected void input(){
+
+    protected void input() {
         gameLogic.input(window);
     }
-    private void update(float interval){
+
+    private void update(float interval) {
         gameLogic.update(interval);
     }
-    protected void render(){
+
+    protected void render() {
         gameLogic.render(window);
         window.update();
     }
-
-
-
+    protected void  cleanup(){
+        gameLogic.cleanup();
+    }
 
 }

@@ -5,10 +5,9 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.GL_FALSE;
-import static org.lwjgl.opengl.GL11.GL_TRUE;
-import static org.lwjgl.opengl.GL11.glClearColor;
+import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
+
 
 public class Window {
     private String windowTitle;
@@ -19,17 +18,13 @@ public class Window {
     private boolean resized;
 
     public Window(String windowTitle, int width, int height, boolean vSync) {
-
         this.windowTitle = windowTitle;
         this.width = width;
         this.height = height;
         this.vSync = vSync;
+        this.resized = false;
     }
 
-
-    public boolean isKeyPressed(int keyCode) {
-        return glfwGetKey(windowHandle, keyCode) == GLFW_PRESS;
-    }
 
 
     public void init() {
@@ -74,7 +69,7 @@ public class Window {
         //make the openGl context current
         glfwMakeContextCurrent(windowHandle);
 
-        if (isvSync()){
+        if (isvSync()) {
             glfwSwapInterval(1);
         }
 
@@ -83,16 +78,23 @@ public class Window {
         glfwShowWindow(windowHandle);
 
         GL.createCapabilities();
-        glClearColor(0.0f,0.0f,0.0f,0.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 
     }
-    public void setClearColor(float r, float g, float b, float alpha){
-        glClearColor(r,g,b,alpha);
+
+    public boolean isKeyPressed(int keyCode) {
+        return glfwGetKey(windowHandle, keyCode) == GLFW_PRESS;
     }
-    public boolean windowShouldClose(){
+
+    public void setClearColor(float r, float g, float b, float alpha) {
+        glClearColor(r, g, b, alpha);
+    }
+
+    public boolean windowShouldClose() {
         return glfwWindowShouldClose(windowHandle);
     }
+
     public String getTitle() {
         return windowTitle;
     }
@@ -120,7 +122,8 @@ public class Window {
     public void setvSync(boolean vSync) {
         this.vSync = vSync;
     }
-    public void update(){
+
+    public void update() {
         glfwSwapBuffers(windowHandle);
         glfwPollEvents();
     }
